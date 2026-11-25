@@ -2,7 +2,7 @@ import secrets
 from datetime import date
 from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from app.api.deps import (
@@ -19,7 +19,7 @@ from app.services.billing import ZERO, compute_fee_status, outstanding, unpaid_c
 from app.services.trainer_settings import get_or_create_settings
 from app.services.storage import (
     validate_and_save_image,
-    get_secure_file_path,
+    read_image,
     delete_secure_file,
 )
 from app.models.user import User, UserRole
@@ -369,18 +369,12 @@ def get_client_photo(
             detail="Client has no profile photo.",
         )
 
-    file_path = get_secure_file_path(client.profile_photo)
-    ext = file_path.suffix.lower()
-    media_type = "image/jpeg"
-    if ext == ".png":
-        media_type = "image/png"
-    elif ext == ".webp":
-        media_type = "image/webp"
-
-    return FileResponse(
-        path=file_path,
+    content, media_type = read_image(client.profile_photo)
+    # private: only the signed-in browser may cache it, never a CDN or proxy in between
+    return Response(
+        content=content,
         media_type=media_type,
-        headers={"Cache-Control": "public, max-age=86400, must-revalidate"},
+        headers={"Cache-Control": "private, max-age=86400"},
     )
 
 

@@ -1,0 +1,54 @@
+# Render Blueprint for the OneCountry Fitness API.
+# Render dashboard -> New -> Blueprint -> pick this repo. Values marked `sync: false`
+# are asked for during setup (see DEPLOYMENT.md, "Render + Vercel + Neon + R2").
+services:
+  - type: web
+    name: onecountry-gym-api
+    runtime: docker
+    # Singapore is closest to India; put the Neon database in the same region (AWS ap-southeast-1)
+    region: singapore
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    autoDeploy: true
+    # Frontend-only commits don't redeploy the API
+    buildFilter:
+      paths:
+        - backend/**
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      # Neon connection string, pasted as shown in Neon (postgresql://...?sslmode=require).
+      # Use the direct one, not the "-pooler" host.
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: STORAGE_BACKEND
+        value: s3
+      - key: S3_BUCKET
+        sync: false
+      # Cloudflare R2: https://<account_id>.r2.cloudflarestorage.com
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_REGION
+        value: auto
+      # Set to false once your trainer account exists
+      - key: ALLOW_TRAINER_REGISTRATION
+        value: "true"
+      - key: TIMEZONE
+        value: Asia/Kolkata
+      - key: DEFAULT_CURRENCY
+        value: INR
+      - key: DEFAULT_PHONE_COUNTRY_CODE
+        value: "91"
+      # The free instance has 512 MB of memory; one worker fits comfortably
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: SCHEDULER_ENABLED
+        value: "true"

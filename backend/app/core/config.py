@@ -48,6 +48,16 @@ class Settings(BaseSettings):
         str(Path(__file__).resolve().parent.parent.parent / "uploads"),
     )
     MAX_UPLOAD_SIZE_MB: int = int(os.getenv("MAX_UPLOAD_SIZE_MB", "10"))
+
+    # Where photos are kept: "local" (UPLOAD_DIR on disk) or "s3" (any S3-compatible bucket,
+    # e.g. Cloudflare R2 or AWS S3). Use "s3" on hosts whose disk is wiped on redeploy (Render).
+    STORAGE_BACKEND: str = os.getenv("STORAGE_BACKEND", "local").strip().lower()
+    S3_BUCKET: str = os.getenv("S3_BUCKET", "")
+    # R2: https://<account_id>.r2.cloudflarestorage.com  ·  AWS S3: leave empty
+    S3_ENDPOINT_URL: str = os.getenv("S3_ENDPOINT_URL", "")
+    S3_REGION: str = os.getenv("S3_REGION", "auto")
+    S3_ACCESS_KEY_ID: str = os.getenv("S3_ACCESS_KEY_ID", "")
+    S3_SECRET_ACCESS_KEY: str = os.getenv("S3_SECRET_ACCESS_KEY", "")
     TIMEZONE: str = os.getenv("TIMEZONE", "Asia/Kolkata")
 
     # Billing defaults
@@ -84,6 +94,16 @@ def validate_production_settings(s: "Settings") -> None:
         problems.append("JWT_SECRET_KEY must be a unique random value of at least 32 characters")
     if s.DATABASE_URL.startswith("sqlite"):
         problems.append("DATABASE_URL must point to PostgreSQL in production")
+    if s.STORAGE_BACKEND not in ("local", "s3"):
+        problems.append("STORAGE_BACKEND must be 'local' or 's3'")
+    if s.STORAGE_BACKEND == "s3":
+        missing = [
+            name
+            for name in ("S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY")
+            if not getattr(s, name)
+        ]
+        if missing:
+            problems.append("STORAGE_BACKEND=s3 needs " + ", ".join(missing))
     if problems:
         raise RuntimeError("Unsafe production configuration: " + "; ".join(problems))
 

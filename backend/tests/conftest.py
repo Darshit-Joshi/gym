@@ -4,6 +4,10 @@ from pathlib import Path
 
 # The background scheduler talks to the real DATABASE_URL; never run it under tests.
 os.environ["SCHEDULER_ENABLED"] = "false"
+# Keep test photos out of backend/uploads, and never use a real bucket from .env.
+import tempfile
+os.environ["UPLOAD_DIR"] = tempfile.mkdtemp(prefix="gym-test-uploads-")
+os.environ["STORAGE_BACKEND"] = "local"
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

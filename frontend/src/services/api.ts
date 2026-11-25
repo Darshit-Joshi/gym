@@ -25,6 +25,7 @@ import type {
   DayExerciseDetail,
   PaginatedClients,
 } from '../types';
+import { prepareImageForUpload } from '../utils/prepareImage';
 
 const api = axios.create({
   baseURL: '/api',
@@ -134,7 +135,7 @@ export const clientService = {
   },
   uploadPhoto: async (clientId: number, file: File): Promise<{ message: string; profile_photo: string; photo_url: string }> => {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', await prepareImageForUpload(file));
     const res = await api.post<{ message: string; profile_photo: string; photo_url: string }>(`/clients/${clientId}/photo`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -211,7 +212,7 @@ export const progressPhotoService = {
     form.append('category', data.category);
     if (data.weight !== undefined) form.append('weight', String(data.weight));
     if (data.notes) form.append('notes', data.notes);
-    form.append('file', data.file);
+    form.append('file', await prepareImageForUpload(data.file));
     const res = await api.post<ProgressPhoto>('/progress-photos', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });

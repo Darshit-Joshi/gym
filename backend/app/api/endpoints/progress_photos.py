@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 from pydantic import ValidationError
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -24,11 +24,9 @@ from app.schemas.progress_photo import (
     ProgressPhotoResponse,
     ProgressPhotoUpdate,
 )
-from app.services.storage import delete_secure_file, get_secure_file_path, validate_and_save_image
+from app.services.storage import delete_secure_file, read_image, validate_and_save_image
 
 router = APIRouter()
-
-MEDIA_TYPES = {".png": "image/png", ".webp": "image/webp"}
 
 
 def _week_start(d: date) -> date:
@@ -153,10 +151,10 @@ def get_progress_photo_image(
     if not trainer:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Trainer role required")
     photo = _get_photo(db, photo_id, trainer.id)
-    file_path = get_secure_file_path(photo.photo_path)
-    return FileResponse(
-        path=file_path,
-        media_type=MEDIA_TYPES.get(file_path.suffix.lower(), "image/jpeg"),
+    content, media_type = read_image(photo.photo_path)
+    return Response(
+        content=content,
+        media_type=media_type,
         headers={"Cache-Control": "private, max-age=86400"},
     )
 
