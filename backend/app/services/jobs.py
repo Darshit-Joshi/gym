@@ -16,6 +16,7 @@ from app.models.client import Client, ClientStatus
 from app.models.trainer import Trainer
 from app.services.alerts import evaluate_client_absence, evaluate_fee_alerts
 from app.services.billing import generate_dues_for_trainer
+from app.services.storage_usage import check_database_size
 from app.services.trainer_settings import get_or_create_settings
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ def run_daily_jobs(db: Session, today: Optional[date] = None, trainer_id: Option
         query = query.filter(Trainer.id == trainer_id)
     trainers = query.all()
 
-    summary = {"dues_created": 0, "absence_alerts": 0, "fee_alerts": 0}
+    summary = {"dues_created": 0, "absence_alerts": 0, "fee_alerts": 0, "storage_alerts": 0}
     for trainer in trainers:
         prefs = get_or_create_settings(db, trainer.id)
 
@@ -55,6 +56,12 @@ def run_daily_jobs(db: Session, today: Optional[date] = None, trainer_id: Option
             summary["fee_alerts"] += evaluate_fee_alerts(db, trainer, prefs, today)
         except IntegrityError:
             db.rollback()
+
+    try:
+        summary["storage_alerts"] = check_database_size(db, trainers, today)
+    except Exception:
+        db.rollback()
+        logger.exception("Database size check failed")
 
     logger.info("Daily jobs finished for %s: %s", today.isoformat(), summary)
     return summary

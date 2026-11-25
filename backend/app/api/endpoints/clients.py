@@ -309,7 +309,7 @@ def delete_client_permanently(
     db.commit()
     for key in files:
         if key:
-            delete_secure_file(key)
+            delete_secure_file(key, db)
     return {"message": f"{name} and all of their records were deleted"}
 
 
@@ -334,11 +334,11 @@ async def upload_client_photo(
         )
 
     # Save new image securely
-    storage_key, _ = validate_and_save_image(file_bytes, subfolder="profiles")
+    storage_key, _ = validate_and_save_image(file_bytes, subfolder="profiles", db=db)
 
     # If previous photo existed, delete the old file
     if client.profile_photo and client.profile_photo != storage_key:
-        delete_secure_file(client.profile_photo)
+        delete_secure_file(client.profile_photo, db)
 
     client.profile_photo = storage_key
     db.commit()
@@ -369,7 +369,7 @@ def get_client_photo(
             detail="Client has no profile photo.",
         )
 
-    content, media_type = read_image(client.profile_photo)
+    content, media_type = read_image(client.profile_photo, db)
     # private: only the signed-in browser may cache it, never a CDN or proxy in between
     return Response(
         content=content,
@@ -390,7 +390,7 @@ def delete_client_photo(
     client = verify_client_access(client_id, current_user, db)
 
     if client.profile_photo:
-        delete_secure_file(client.profile_photo)
+        delete_secure_file(client.profile_photo, db)
         client.profile_photo = None
         db.commit()
 

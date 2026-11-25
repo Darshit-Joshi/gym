@@ -213,7 +213,7 @@ def test_membership_generates_dues_and_payments_flow(client, trainer_auth_header
     # Regenerating dues is idempotent: a second daily run creates nothing new
     run_daily_jobs(db_session)
     second = run_daily_jobs(db_session)
-    assert set(second) == {"dues_created", "absence_alerts", "fee_alerts"}
+    assert set(second) == {"dues_created", "absence_alerts", "fee_alerts", "storage_alerts"}
     assert second["dues_created"] == 0
     db_session.expire_all()
     assert db_session.query(FeeRecord).filter(FeeRecord.client_id == client_id).count() == 3
@@ -389,7 +389,7 @@ def test_fee_overdue_alerts_trainer_only_and_idempotent(client, trainer_auth_hea
     assert len(statuses) == 2 and "OVERDUE" in statuses
 
     first = run_daily_jobs(db_session)
-    assert set(first) == {"dues_created", "absence_alerts", "fee_alerts"}
+    assert set(first) == {"dues_created", "absence_alerts", "fee_alerts", "storage_alerts"}
     assert first["fee_alerts"] >= 1
     trainer_overdue = [n for n in _notifications(client, trainer_auth_headers, "FEE_OVERDUE")["items"] if n["client_id"] == client_id]
     assert len(trainer_overdue) == 1

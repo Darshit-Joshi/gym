@@ -13,6 +13,7 @@ from app.models.feedback import ClientFeedback, FeedbackCategory, FollowUpStatus
 from app.models.billing import MembershipPlan, FeeRecord, FeePayment, PaymentMethod, FeeStatus
 from app.models.notification import Notification, NotificationType, NotificationSeverity, EmailStatus
 from app.models.trainer_settings import TrainerSettings
+from app.models.stored_file import StoredFile
 
 __all__ = [
     "Base",
@@ -48,4 +49,5 @@ __all__ = [
     "NotificationSeverity",
     "EmailStatus",
     "TrainerSettings",
+    "StoredFile",
 ]

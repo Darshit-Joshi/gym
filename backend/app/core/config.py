@@ -49,9 +49,14 @@ class Settings(BaseSettings):
     )
     MAX_UPLOAD_SIZE_MB: int = int(os.getenv("MAX_UPLOAD_SIZE_MB", "10"))
 
-    # Where photos are kept: "local" (UPLOAD_DIR on disk) or "s3" (any S3-compatible bucket,
-    # e.g. Cloudflare R2 or AWS S3). Use "s3" on hosts whose disk is wiped on redeploy (Render).
+    # Where photos are kept:
+    #   "local"    - UPLOAD_DIR on disk (Docker / VPS)
+    #   "database" - a table in the app's own database; no extra service (Render free + Neon)
+    #   "s3"       - any S3-compatible bucket (Cloudflare R2, AWS S3, Backblaze B2, Supabase)
     STORAGE_BACKEND: str = os.getenv("STORAGE_BACKEND", "local").strip().lower()
+    # Database plan size in MB (Neon free: 500). The trainer gets an in-app warning at 80% and
+    # 95% full. 0 turns the check off.
+    DATABASE_SIZE_LIMIT_MB: int = int(os.getenv("DATABASE_SIZE_LIMIT_MB", "0"))
     S3_BUCKET: str = os.getenv("S3_BUCKET", "")
     # R2: https://<account_id>.r2.cloudflarestorage.com  ·  AWS S3: leave empty
     S3_ENDPOINT_URL: str = os.getenv("S3_ENDPOINT_URL", "")
@@ -94,8 +99,8 @@ def validate_production_settings(s: "Settings") -> None:
         problems.append("JWT_SECRET_KEY must be a unique random value of at least 32 characters")
     if s.DATABASE_URL.startswith("sqlite"):
         problems.append("DATABASE_URL must point to PostgreSQL in production")
-    if s.STORAGE_BACKEND not in ("local", "s3"):
-        problems.append("STORAGE_BACKEND must be 'local' or 's3'")
+    if s.STORAGE_BACKEND not in ("local", "database", "s3"):
+        problems.append("STORAGE_BACKEND must be 'local', 'database' or 's3'")
     if s.STORAGE_BACKEND == "s3":
         missing = [
             name

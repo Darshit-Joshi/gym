@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, BellRing, IndianRupee, MessageCircle, UserX } from 'lucide-react';
+import { AlertTriangle, BellRing, HardDrive, IndianRupee, MessageCircle, UserX } from 'lucide-react';
 import type { AppNotification } from '../../types';
 import { formatRelativeTime } from '../../utils/format';
 
@@ -8,6 +8,7 @@ const ICONS: Record<string, React.ElementType> = {
   ABSENCE_MONTHLY: UserX,
   FEE_DUE_SOON: IndianRupee,
   FEE_OVERDUE: AlertTriangle,
+  STORAGE_LOW: HardDrive,
 };
 
 const SEVERITY_STYLES: Record<string, string> = {

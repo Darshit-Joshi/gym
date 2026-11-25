@@ -349,7 +349,7 @@ export interface FeeSummary {
 // Notifications & settings
 // ---------------------------------------------------------------------------
 
-export type NotificationType = 'ABSENCE_STREAK' | 'ABSENCE_MONTHLY' | 'FEE_OVERDUE';
+export type NotificationType = 'ABSENCE_STREAK' | 'ABSENCE_MONTHLY' | 'FEE_DUE_SOON' | 'FEE_OVERDUE' | 'STORAGE_LOW';
 export type NotificationSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
 
 export interface AppNotification {

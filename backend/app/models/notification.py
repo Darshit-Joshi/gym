@@ -19,6 +19,7 @@ class NotificationType(str, enum.Enum):
     ABSENCE_MONTHLY = "ABSENCE_MONTHLY"
     FEE_DUE_SOON = "FEE_DUE_SOON"
     FEE_OVERDUE = "FEE_OVERDUE"
+    STORAGE_LOW = "STORAGE_LOW"
 
 
 class NotificationSeverity(str, enum.Enum):

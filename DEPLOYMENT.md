@@ -3,8 +3,8 @@
 Two supported setups:
 
 - **One server with Docker** (below): database, API, web app and photos all on one VPS.
-- **Render + Vercel + Neon + Cloudflare R2**: managed services, no server to look after.
-  See [Render + Vercel + Neon + R2](#render--vercel--neon--r2).
+- **Render + Vercel + Neon**: free managed services, no server to look after.
+  See [Render + Vercel + Neon](#render--vercel--neon).
 
 The Docker setup runs as three containers:
 
@@ -110,50 +110,48 @@ docker compose exec backend python -m app.cli reset-trainer-password \
   --email you@example.com --password '<new password>'  # forgotten password
 ```
 
-## Render + Vercel + Neon + R2
+## Render + Vercel + Neon
 
-| Piece        | Service            | Holds                                   |
-|--------------|--------------------|-----------------------------------------|
-| Web app      | Vercel             | the React app; forwards `/api/*` to Render |
-| API          | Render (Docker)    | FastAPI, runs migrations on every deploy |
-| Database     | Neon               | all tables                              |
-| Photos       | Cloudflare R2      | profile and progress photos (private bucket) |
+| Piece    | Service         | Holds                                              |
+|----------|-----------------|----------------------------------------------------|
+| Web app  | Vercel          | the React app; forwards `/api/*` to Render          |
+| API      | Render (Docker) | FastAPI; runs migrations on every deploy            |
+| Database | Neon            | all tables **and the photos** (`STORAGE_BACKEND=database`) |
 
-Render's disk is wiped on every deploy, so photos must live in R2 (or AWS S3), not on Render.
-The bucket stays private: the API checks the login and streams each photo itself.
+Render's disk is wiped on every deploy, so photos are kept in the database instead of on
+disk. Only signed-in users can load them: the API checks the login and streams each photo.
 
 ### 1. Neon (database)
 
-1. Create a project. Pick region **AWS Asia Pacific (Singapore)** so it sits next to the API.
+1. Create a project in region **AWS Asia Pacific (Singapore)**, next to the API.
 2. Copy the connection string with **"Connection pooling" turned off** (the host must *not*
-   contain `-pooler`). The background job relies on a database lock that the pooler doesn't keep.
+   contain `-pooler`). The background job relies on a database lock the pooler doesn't keep.
    Paste it as-is, `?sslmode=require&channel_binding=require` included; the API handles it.
 
-### 2. Cloudflare R2 (photos)
-
-1. R2 → **Create bucket**, e.g. `onecountry-gym-photos`. Leave public access **off**.
-2. R2 → **Manage API tokens** → **Create API token**, permission **Object Read & Write**,
-   limited to that bucket. Note the **Access Key ID**, **Secret Access Key**, and the
-   S3 endpoint `https://<account_id>.r2.cloudflarestorage.com`.
-
-### 3. Render (API)
+### 2. Render (API)
 
 1. Render → **New** → **Blueprint** → choose this GitHub repo. It reads [`render.yaml`](render.yaml).
-2. Fill in the values it asks for:
-   - `DATABASE_URL`: the Neon connection string
-   - `S3_BUCKET`, `S3_ENDPOINT_URL`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`: from R2
-   - `JWT_SECRET_KEY` is generated for you.
+2. Paste the Neon connection string as `DATABASE_URL`. `JWT_SECRET_KEY` is generated for you.
 3. Wait for the deploy, then open `https://<service>.onrender.com/health`; it should say `healthy`.
    Note the exact URL; Render adds a suffix if `onecountry-gym-api` is taken.
 
-### 4. Vercel (web app)
+### 3. Vercel (web app)
 
 1. If the Render URL is not `https://onecountry-gym-api.onrender.com`, change the `/api`
    rewrite in [`frontend/vercel.json`](frontend/vercel.json) to the real URL and push.
 2. Vercel → **Add New Project** → import this repo → set **Root Directory** to `frontend`.
-   The framework (Vite) and build settings come from `vercel.json`. No environment variables needed.
+   Build settings come from `vercel.json`. No environment variables needed.
 3. Open the Vercel URL, create your trainer account, then in Render set
    `ALLOW_TRAINER_REGISTRATION` to `false` (Render redeploys by itself).
+
+### Space on Neon's free plan (500 MB)
+
+Photos are resized before they are stored: profile photos to 800 px, progress photos to
+1280 px, usually 50–250 KB each. That is room for a few thousand photos next to the tables.
+The app sends the trainer an in-app alert at 80% and again at 95% full
+(`DATABASE_SIZE_LIMIT_MB=500` in `render.yaml`). To free space, permanently delete archived
+clients you no longer need (their photos go with them). If it still runs out, either upgrade
+Neon or move new photos to a bucket (`STORAGE_BACKEND=s3`, see `.env.example`).
 
 ### Things to know on the free plans
 
@@ -161,16 +159,16 @@ The bucket stays private: the API checks the login and streams each photo itself
   a minute to wake up, and the first request can time out while it does. The hourly background
   job (monthly dues, absence and fee alerts) also only runs while it's awake; it catches up when
   the app is next opened. Render's Starter plan ($7/month) stays awake.
-- Neon's free plan has 0.5 GB of storage, plenty for tables (photos don't go there).
-- R2's free tier includes 10 GB and no download fees. Photos are resized before storage
-  (profile 800 px, progress 1600 px), typically 100–400 KB each.
+- Neon's free plan also pauses the database when idle; it wakes up again within a few seconds.
 
 ### Backups
 
-- Database: Neon keeps a restore history (point-in-time restore); for your own copy, run
-  `pg_dump "<neon connection string>" | gzip > gym-$(date +%F).sql.gz` from any machine with
-  the Postgres client.
-- Photos: copy the bucket with `rclone` or `aws s3 sync --endpoint-url <R2 endpoint>`.
+Neon keeps a short restore history (point-in-time restore). For your own copy, which includes
+the photos, run from any machine with the Postgres client:
+
+```bash
+pg_dump "<neon connection string>" | gzip > gym-$(date +%F).sql.gz
+```
 
 ## Local development (without Docker for the app)
 

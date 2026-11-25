@@ -1,18 +1,23 @@
 """Photo storage.
 
-Images are validated, re-encoded (which strips EXIF) and resized here, then kept either on
-local disk (STORAGE_BACKEND=local, the Docker/VPS default) or in an S3-compatible bucket such
-as Cloudflare R2 or AWS S3 (STORAGE_BACKEND=s3, for hosts like Render whose disk is wiped on
-every deploy). Buckets stay private: the API streams images to signed-in users only.
+Images are validated, re-encoded (which strips EXIF) and resized here, then kept in one of:
+  - local disk (STORAGE_BACKEND=local, the Docker/VPS default)
+  - the app's own database (STORAGE_BACKEND=database, for Render free + Neon: no extra service)
+  - an S3-compatible bucket (STORAGE_BACKEND=s3: Cloudflare R2, AWS S3, ...)
+Whatever the backend, the API streams images to signed-in users only.
+
+The database backend uses the caller's session: a saved photo is committed together with the
+row that points to it, so a failed request leaves nothing behind.
 """
 import io
 import re
 import uuid
 from functools import lru_cache
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
 
 from fastapi import HTTPException, status
+from sqlalchemy.orm import Session
 
 try:
     from PIL import Image, ImageOps
@@ -23,6 +28,12 @@ except ImportError:
     HAS_PILLOW = False
 
 from app.core.config import settings
+from app.models.stored_file import StoredFile
+
+# Longest side in pixels. Phones show these full-screen at most; smaller files also keep the
+# database backend within free-plan limits (~60-250 KB per progress photo).
+MAX_DIMENSION = {"profiles": 800, "progress": 1280}
+JPEG_QUALITY = 80
 
 ALLOWED_EXTENSIONS = {
     "JPEG": ".jpg",
@@ -50,6 +61,16 @@ _STORAGE_KEY_RE = re.compile(r"^(profiles|progress)/[0-9a-f]{32}\.(jpg|jpeg|png|
 
 def _use_s3() -> bool:
     return settings.STORAGE_BACKEND == "s3"
+
+
+def _use_db() -> bool:
+    return settings.STORAGE_BACKEND == "database"
+
+
+def _require_session(db: Optional[Session]) -> Session:
+    if db is None:
+        raise RuntimeError("STORAGE_BACKEND=database needs the request's database session")
+    return db
 
 
 @lru_cache(maxsize=1)
@@ -110,8 +131,9 @@ def _encode_image(file_bytes: bytes, subfolder: str) -> Tuple[bytes, str]:
         except Exception:
             pass
 
-        # 2. Resize to optimal dimension (800x800 for profile avatars, 1600x1600 for progress photos)
-        max_box = (800, 800) if subfolder == "profiles" else (1600, 1600)
+        # 2. Resize (800 px for profile avatars, 1280 px for progress photos)
+        side = MAX_DIMENSION[subfolder]
+        max_box = (side, side)
         resampling = getattr(getattr(Image, "Resampling", Image), "LANCZOS", Image.BICUBIC)
         image.thumbnail(max_box, resampling)
 
@@ -122,11 +144,11 @@ def _encode_image(file_bytes: bytes, subfolder: str) -> Tuple[bytes, str]:
             if image_format == "JPEG":
                 if save_img.mode in ("RGBA", "P"):
                     save_img = save_img.convert("RGB")
-                save_img.save(out, format="JPEG", quality=85, optimize=True)
+                save_img.save(out, format="JPEG", quality=JPEG_QUALITY, optimize=True, progressive=True)
             elif image_format == "PNG":
                 save_img.save(out, format="PNG", optimize=True)
             elif image_format == "WEBP":
-                save_img.save(out, format="WEBP", quality=85)
+                save_img.save(out, format="WEBP", quality=JPEG_QUALITY)
             else:
                 save_img.save(out, format=image_format)
         except Exception:
@@ -152,6 +174,7 @@ def _encode_image(file_bytes: bytes, subfolder: str) -> Tuple[bytes, str]:
 def validate_and_save_image(
     file_bytes: bytes,
     subfolder: str = "profiles",
+    db: Optional[Session] = None,
 ) -> Tuple[str, str]:
     """
     Validates uploaded image bytes:
@@ -159,7 +182,8 @@ def validate_and_save_image(
     2. Validates real image contents via Pillow.
     3. Strips EXIF metadata for privacy.
     4. Generates a secure, unique key to prevent collisions & traversal.
-    5. Stores it on disk or in the bucket and returns (storage_key, content_type).
+    5. Stores it and returns (storage_key, content_type). With the database backend the row
+       is only flushed: it is committed by the caller together with the record using it.
     """
     max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
     if len(file_bytes) > max_bytes:
@@ -174,7 +198,13 @@ def validate_and_save_image(
     storage_key = f"{subfolder}/{uuid.uuid4().hex}{ALLOWED_EXTENSIONS[image_format]}"
     content_type = f"image/{image_format.lower()}"
 
-    if _use_s3():
+    if _use_db():
+        session = _require_session(db)
+        session.add(
+            StoredFile(key=storage_key, content_type=content_type, size_bytes=len(data), data=data)
+        )
+        session.flush()
+    elif _use_s3():
         try:
             _s3_client().put_object(
                 Bucket=settings.S3_BUCKET,
@@ -229,9 +259,22 @@ def get_secure_file_path(storage_key: str) -> Path:
     return resolved_path
 
 
-def read_image(storage_key: str) -> Tuple[bytes, str]:
-    """Return (image bytes, media type) for a stored photo, from disk or the bucket."""
+def read_image(storage_key: str, db: Optional[Session] = None) -> Tuple[bytes, str]:
+    """Return (image bytes, media type) for a stored photo."""
     _check_key(storage_key)
+    if _use_db():
+        row = (
+            _require_session(db)
+            .query(StoredFile.data, StoredFile.content_type)
+            .filter(StoredFile.key == storage_key)
+            .first()
+        )
+        if row is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Requested file does not exist on server.",
+            )
+        return bytes(row.data), row.content_type or media_type_for(storage_key)
     if not _use_s3():
         return get_secure_file_path(storage_key).read_bytes(), media_type_for(storage_key)
 
@@ -250,13 +293,28 @@ def read_image(storage_key: str) -> Tuple[bytes, str]:
         )
 
 
-def delete_secure_file(storage_key: str) -> bool:
+def delete_secure_file(storage_key: str, db: Optional[Session] = None) -> bool:
     """
     Deletes the stored photo for storage_key. Never raises: a leftover file is harmless,
-    a failed request because of one is not.
+    a failed request because of one is not. The database backend commits the deletion.
     """
     if not storage_key:
         return False
+
+    if _use_db():
+        session = _require_session(db)
+        try:
+            _check_key(storage_key)
+            deleted = (
+                session.query(StoredFile)
+                .filter(StoredFile.key == storage_key)
+                .delete(synchronize_session=False)
+            )
+            session.commit()
+            return bool(deleted)
+        except Exception:
+            session.rollback()
+            return False
 
     try:
         if _use_s3():

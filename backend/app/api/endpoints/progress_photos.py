@@ -107,7 +107,7 @@ async def upload_progress_photo(
     file_bytes = await file.read()
     if not file_bytes:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file is empty.")
-    storage_key, _ = validate_and_save_image(file_bytes, subfolder="progress")
+    storage_key, _ = validate_and_save_image(file_bytes, subfolder="progress", db=db)
 
     photo = ProgressPhoto(
         client_id=client.id,
@@ -134,7 +134,7 @@ async def upload_progress_photo(
         db.commit()
     except Exception:
         db.rollback()
-        delete_secure_file(storage_key)
+        delete_secure_file(storage_key, db)
         raise
     db.refresh(photo)
     return _response(photo)
@@ -151,7 +151,7 @@ def get_progress_photo_image(
     if not trainer:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Trainer role required")
     photo = _get_photo(db, photo_id, trainer.id)
-    content, media_type = read_image(photo.photo_path)
+    content, media_type = read_image(photo.photo_path, db)
     return Response(
         content=content,
         media_type=media_type,
@@ -194,7 +194,7 @@ def delete_progress_photo(
     storage_key = photo.photo_path
     db.delete(photo)
     db.commit()
-    delete_secure_file(storage_key)
+    delete_secure_file(storage_key, db)
     return {"message": "Photo deleted"}
 
 

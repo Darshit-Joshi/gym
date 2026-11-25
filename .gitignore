@@ -52,3 +52,6 @@ Thumbs.db
 # User-uploaded files (runtime data)
 backend/uploads/
 uploads/
+
+# Local API keys
+.render_api_key

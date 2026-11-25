@@ -1,6 +1,6 @@
 # Render Blueprint for the OneCountry Fitness API.
 # Render dashboard -> New -> Blueprint -> pick this repo. Values marked `sync: false`
-# are asked for during setup (see DEPLOYMENT.md, "Render + Vercel + Neon + R2").
+# are asked for during setup (see DEPLOYMENT.md, "Render + Vercel + Neon").
 services:
   - type: web
     name: onecountry-gym-api
@@ -25,19 +25,12 @@ services:
         sync: false
       - key: JWT_SECRET_KEY
         generateValue: true
+      # Photos go into the Neon database: Render's free disk is wiped on every deploy
       - key: STORAGE_BACKEND
-        value: s3
-      - key: S3_BUCKET
-        sync: false
-      # Cloudflare R2: https://<account_id>.r2.cloudflarestorage.com
-      - key: S3_ENDPOINT_URL
-        sync: false
-      - key: S3_ACCESS_KEY_ID
-        sync: false
-      - key: S3_SECRET_ACCESS_KEY
-        sync: false
-      - key: S3_REGION
-        value: auto
+        value: database
+      # Neon free plan size; the trainer is warned in the app at 80% and 95%
+      - key: DATABASE_SIZE_LIMIT_MB
+        value: "500"
       # Set to false once your trainer account exists
       - key: ALLOW_TRAINER_REGISTRATION
         value: "true"
