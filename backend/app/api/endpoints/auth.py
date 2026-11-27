@@ -210,11 +210,19 @@ def register_trainer(data: RegisterTrainerRequest, db: Session = Depends(get_db)
         try:
             db.commit()
             db.refresh(trainer)
-        except IntegrityError:
+        except IntegrityError as exc:
             db.rollback()
+            # Only blame the email when it is actually taken (e.g. a concurrent sign-up);
+            # any other constraint failure must not masquerade as a duplicate email.
+            if db.query(User).filter(User.email == clean_email).first():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="An account with this email address already exists.",
+                )
+            logger.error(f"Trainer registration failed on a database constraint: {exc.orig}")
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="An account with this email address already exists.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Could not create the trainer account. Please try again later.",
             )
 
     token = create_access_token(subject=user.id, role=user.role)
