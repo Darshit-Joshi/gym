@@ -1,18 +1,13 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  BookOpen,
-  Search,
   PlusCircle,
   Edit2,
   Trash2,
-  Filter,
   Dumbbell,
   CheckCircle,
   AlertCircle,
   X,
-  Layers,
-  Gauge,
   AlertTriangle,
 } from 'lucide-react';
 import { exerciseService } from '../../services/api';
@@ -24,6 +19,7 @@ import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner';
 import { EmptyState } from '../../components/common/EmptyState';
+import { PageHeader, SearchInput, Segmented } from '../../components/common/ui';
 import type { Exercise, MuscleGroup } from '../../types';
 
 const MUSCLE_GROUPS: MuscleGroup[] = [
@@ -197,26 +193,16 @@ export const ExercisesPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-[var(--color-border)]">
-        <div>
-          <h1 className="text-2xl font-black text-[var(--color-text)] tracking-tight flex items-center space-x-2">
-            <BookOpen className="w-6 h-6 text-[var(--color-primary)]" />
-            <span>Exercise Library</span>
-          </h1>
-          <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-            Browse, categorize, and expand your movement catalog with equipment and difficulty tagging.
-          </p>
-        </div>
-
-        <Button
-          variant="primary"
-          leftIcon={<PlusCircle className="w-4 h-4" />}
-          onClick={openCreateModal}
-        >
-          Add Exercise
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Library"
+        title="Exercise library"
+        description="Your movement catalog, tagged by muscle, equipment and level."
+        actions={
+          <Button variant="primary" leftIcon={<PlusCircle className="w-4 h-4" />} onClick={openCreateModal}>
+            Add exercise
+          </Button>
+        }
+      />
 
       {notification && (
         <div
@@ -240,88 +226,32 @@ export const ExercisesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Filter and Search Bar Card */}
-      <Card className="p-4 space-y-3.5">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Search Box */}
-          <div className="relative md:col-span-1">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" />
-            <input
-              type="text"
-              placeholder="Search by exercise name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-[var(--color-input)] border border-[var(--color-input-border)] rounded-lg text-sm text-[var(--color-text)] placeholder-[var(--color-text-secondary)] focus:outline-none focus:border-[var(--color-input-focus)] min-h-[42px]"
-            />
-          </div>
-
-          {/* Equipment Filter Dropdown */}
-          <div className="flex items-center space-x-2">
-            <span className="text-xs text-[var(--color-text-secondary)] font-semibold shrink-0 flex items-center gap-1">
-              <Layers className="w-3.5 h-3.5 text-[var(--color-primary)]" /> Equipment:
-            </span>
-            <select
-              value={selectedEquipment}
-              onChange={(e) => setSelectedEquipment(e.target.value)}
-              className="w-full bg-[var(--color-input)] border border-[var(--color-input-border)] rounded-lg px-3 py-2 text-xs text-[var(--color-text)] focus:outline-none focus:border-[var(--color-input-focus)] min-h-[42px]"
-            >
-              {EQUIPMENT_OPTIONS.map((eq) => (
-                <option key={eq} value={eq}>
-                  {eq}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Difficulty Filter Dropdown */}
-          <div className="flex items-center space-x-2">
-            <span className="text-xs text-[var(--color-text-secondary)] font-semibold shrink-0 flex items-center gap-1">
-              <Gauge className="w-3.5 h-3.5 text-[var(--color-primary)]" /> Level:
-            </span>
-            <select
-              value={selectedDifficulty}
-              onChange={(e) => setSelectedDifficulty(e.target.value)}
-              className="w-full bg-[var(--color-input)] border border-[var(--color-input-border)] rounded-lg px-3 py-2 text-xs text-[var(--color-text)] focus:outline-none focus:border-[var(--color-input-focus)] min-h-[42px]"
-            >
-              {DIFFICULTY_OPTIONS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </div>
+      {/* Filters */}
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 md:grid-cols-[1fr_12rem_12rem] gap-3">
+          <SearchInput value={search} onChange={setSearch} placeholder="Search exercises" className="col-span-2 md:col-span-1" />
+          <Select
+            aria-label="Equipment"
+            value={selectedEquipment}
+            onChange={(e) => setSelectedEquipment(e.target.value)}
+            options={EQUIPMENT_OPTIONS.map((eq) => ({ value: eq, label: eq === 'All' ? 'All equipment' : eq }))}
+          />
+          <Select
+            aria-label="Level"
+            value={selectedDifficulty}
+            onChange={(e) => setSelectedDifficulty(e.target.value)}
+            options={DIFFICULTY_OPTIONS.map((d) => ({ value: d, label: d === 'All' ? 'All levels' : d }))}
+          />
         </div>
-
-        {/* Muscle Group Chips */}
-        <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 pt-1 text-xs">
-          <span className="text-[var(--color-text-secondary)] font-semibold mr-1 flex items-center gap-1 shrink-0">
-            <Filter className="w-3.5 h-3.5 text-[var(--color-primary)]" /> Muscle:
-          </span>
-          <button
-            onClick={() => setSelectedMuscleGroup('all')}
-            className={`px-3 py-1.5 rounded-full font-bold transition-all shrink-0 cursor-pointer ${
-              selectedMuscleGroup === 'all'
-                ? 'bg-[var(--color-primary)] text-[var(--color-primary-text)] shadow-sm'
-                : 'bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] border border-[var(--color-border)]'
-            }`}
-          >
-            All
-          </button>
-          {MUSCLE_GROUPS.map((mg) => (
-            <button
-              key={mg}
-              onClick={() => setSelectedMuscleGroup(mg)}
-              className={`px-3 py-1.5 rounded-full font-semibold transition-all shrink-0 cursor-pointer ${
-                selectedMuscleGroup === mg
-                  ? 'bg-[var(--color-primary)] text-[var(--color-primary-text)] shadow-sm font-bold'
-                  : 'bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] border border-[var(--color-border)]'
-              }`}
-            >
-              {mg}
-            </button>
-          ))}
-        </div>
-      </Card>
+        <Segmented
+          label="Muscle group"
+          size="sm"
+          value={selectedMuscleGroup}
+          onChange={setSelectedMuscleGroup}
+          options={[{ value: 'all', label: 'All muscles' }, ...MUSCLE_GROUPS.map((mg) => ({ value: mg as string, label: mg }))]}
+          className="w-fit"
+        />
+      </div>
 
       {/* Grid of Exercises */}
       {isLoading ? (
@@ -342,7 +272,7 @@ export const ExercisesPage: React.FC = () => {
           onAction={openCreateModal}
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {exercises.map((ex) => (
             <Card
               key={ex.id}
@@ -351,20 +281,22 @@ export const ExercisesPage: React.FC = () => {
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-extrabold text-[var(--color-text)] text-base leading-snug">{ex.name}</h3>
-                  <div className="flex items-center space-x-1 shrink-0">
+                  <div className="flex items-center -mr-2 -mt-2 sm:mr-0 sm:mt-0 shrink-0">
                     <button
                       onClick={() => openEditModal(ex)}
-                      className="p-1.5 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] rounded hover:bg-[var(--color-hover)] transition-colors cursor-pointer"
-                      title="Edit Exercise"
+                      className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] rounded-lg hover:bg-[var(--color-hover)] transition-colors cursor-pointer"
+                      title="Edit exercise"
+                      aria-label={`Edit ${ex.name}`}
                     >
-                      <Edit2 className="w-3.5 h-3.5" />
+                      <Edit2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                     </button>
                     <button
                       onClick={() => setDeleteCandidate(ex)}
-                      className="p-1.5 text-[var(--color-text-secondary)] hover:text-rose-400 rounded hover:bg-[var(--color-hover)] transition-colors cursor-pointer"
-                      title="Delete Exercise"
+                      className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-[var(--color-text-secondary)] hover:text-rose-400 rounded-lg hover:bg-[var(--color-hover)] transition-colors cursor-pointer"
+                      title="Delete exercise"
+                      aria-label={`Delete ${ex.name}`}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -390,7 +322,7 @@ export const ExercisesPage: React.FC = () => {
                 )}
               </div>
 
-              <div className="mt-4 pt-3 border-t border-[var(--color-border)] flex items-center justify-between text-[11px] text-[var(--color-text-secondary)] font-mono">
+              <div className="hidden sm:flex mt-4 pt-3 border-t border-[var(--color-border)] items-center justify-between text-[11px] text-[var(--color-text-secondary)] font-mono">
                 <span>CATALOG #{ex.id}</span>
                 <span className="text-[var(--color-text-secondary)]">ONECOUNTRY Verified</span>
               </div>

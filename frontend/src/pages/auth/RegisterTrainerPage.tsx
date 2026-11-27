@@ -119,7 +119,7 @@ export const RegisterTrainerPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] flex flex-col justify-center items-center p-4 relative isolate transition-colors">
+    <div className="min-h-dvh bg-[var(--color-background)] text-[var(--color-text)] flex flex-col justify-center items-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] relative isolate transition-colors">
       <div className="fx-ambient" aria-hidden="true" />
       <div className="absolute top-5 right-5 z-10">
         <ThemeToggle size="md" />

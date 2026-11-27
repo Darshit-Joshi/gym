@@ -39,7 +39,7 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="relative isolate min-h-screen bg-[var(--color-background)] text-[var(--color-text)] grid lg:grid-cols-[1.1fr_1fr]">
+    <div className="relative isolate min-h-dvh pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] bg-[var(--color-background)] text-[var(--color-text)] grid lg:grid-cols-[1.1fr_1fr]">
       <div className="fx-ambient" aria-hidden="true" />
 
       {/* Brand panel */}

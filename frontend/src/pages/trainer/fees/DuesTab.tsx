@@ -136,12 +136,23 @@ export const DuesTab: React.FC<Props> = ({ month, onToast }) => {
           <ul className="fx-stagger divide-y divide-[var(--color-border)]">
             {data.items.map((f) => (
               <li key={f.id}>
-                <div className="grid grid-cols-2 md:grid-cols-[1.6fr_1.3fr_1fr_1fr_1fr_auto] gap-x-3 gap-y-2 px-4 py-3 items-center">
-                  <button onClick={() => navigate(`/clients/${f.client_id}`)} className="text-left min-w-0 cursor-pointer col-span-2 md:col-span-1">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[1.6fr_1.3fr_1fr_1fr_1fr_auto] gap-x-3 gap-y-2.5 px-4 py-3.5 md:py-3 items-center">
+                  <button onClick={() => navigate(`/clients/${f.client_id}`)} className="text-left min-w-0 cursor-pointer md:order-1">
                     <p className="text-sm font-bold text-[var(--color-text)] truncate hover:underline">{f.client_name}</p>
                     <p className="text-xs text-[var(--color-text-secondary)] truncate">{f.plan_name ?? '—'}</p>
                   </button>
-                  <div className="text-xs text-[var(--color-text-secondary)]">
+                  {/* Phones: balance and status stacked at the right of the name. md+: separate columns. */}
+                  <div className="flex flex-col items-end gap-1 md:contents">
+                    <div className="hidden md:block md:order-3 text-right text-sm text-[var(--color-text)]">
+                      {formatMoney(f.amount_due, currency)}
+                      {f.amount_paid > 0 && <p className="text-[11px] text-[var(--color-text-secondary)]">paid {formatMoney(f.amount_paid, currency)}</p>}
+                    </div>
+                    <div className="md:order-4 text-right text-sm font-semibold num text-[var(--color-text)]">{formatMoney(f.balance, currency)}</div>
+                    <div className="md:order-5">
+                      <FeeStatusBadge status={f.status} />
+                    </div>
+                  </div>
+                  <div className="col-span-2 md:col-span-1 md:order-2 text-xs text-[var(--color-text-secondary)]">
                     <p>
                       {formatDate(f.period_start)} – {formatDate(f.period_end)}
                     </p>
@@ -149,18 +160,15 @@ export const DuesTab: React.FC<Props> = ({ month, onToast }) => {
                       Due {formatDate(f.due_date)}
                       {f.days_overdue > 0 && ` · ${f.days_overdue}d late`}
                     </p>
+                    {f.amount_paid > 0 && (
+                      <p className="md:hidden">
+                        Paid {formatMoney(f.amount_paid, currency)} of {formatMoney(f.amount_due, currency)}
+                      </p>
+                    )}
                   </div>
-                  <div className="text-right text-sm text-[var(--color-text)]">
-                    {formatMoney(f.amount_due, currency)}
-                    {f.amount_paid > 0 && <p className="text-[11px] text-[var(--color-text-secondary)]">paid {formatMoney(f.amount_paid, currency)}</p>}
-                  </div>
-                  <div className="text-right text-sm font-semibold num text-[var(--color-text)]">{formatMoney(f.balance, currency)}</div>
-                  <div>
-                    <FeeStatusBadge status={f.status} />
-                  </div>
-                  <div className="flex items-center justify-end gap-1.5 col-span-2 md:col-span-1 md:w-[13rem]">
+                  <div className="flex items-center justify-end gap-1.5 col-span-2 md:col-span-1 md:order-6 md:w-[13rem]">
                     {f.balance > 0 && (
-                      <Button size="sm" leftIcon={<IndianRupee className="w-3.5 h-3.5" />} onClick={() => setPayFee(f)}>
+                      <Button size="sm" leftIcon={<IndianRupee className="w-3.5 h-3.5" />} onClick={() => setPayFee(f)} className="flex-1 md:flex-none">
                         Record payment
                       </Button>
                     )}
@@ -171,14 +179,14 @@ export const DuesTab: React.FC<Props> = ({ month, onToast }) => {
                         rel="noopener noreferrer"
                         title="Send fee reminder on WhatsApp"
                         aria-label="Send fee reminder on WhatsApp"
-                        className="p-2 rounded-lg text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20"
+                        className="w-9 h-9 shrink-0 flex items-center justify-center rounded-lg text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20"
                       >
                         <MessageCircle className="w-4 h-4" />
                       </a>
                     )}
                     <button
                       onClick={() => setExpanded(expanded === f.id ? null : f.id)}
-                      className="p-2 rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)] cursor-pointer"
+                      className="w-9 h-9 shrink-0 flex items-center justify-center rounded-lg text-[var(--color-text-secondary)] hover:bg-[var(--color-hover)] cursor-pointer"
                       aria-label="Show details"
                       aria-expanded={expanded === f.id}
                     >
@@ -212,7 +220,7 @@ export const DuesTab: React.FC<Props> = ({ month, onToast }) => {
                                   });
                                   if (ok) deletePayment.mutate(p.id);
                                 }}
-                                className="p-1.5 rounded text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                                className="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
                                 aria-label="Delete payment"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -250,7 +258,7 @@ export const DuesTab: React.FC<Props> = ({ month, onToast }) => {
       )}
 
       {data && data.total_pages > 1 && (
-        <div className="flex items-center justify-between text-sm text-[var(--color-text-secondary)]">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--color-text-secondary)]">
           <span>
             Page {data.page} of {data.total_pages} · {data.total} dues
           </span>

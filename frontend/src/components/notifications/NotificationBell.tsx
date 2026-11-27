@@ -33,14 +33,14 @@ export const NotificationBell: React.FC<Props> = ({ align = 'right' }) => {
   const markAll = useMutation({ mutationFn: notificationService.markAllRead, onSuccess: invalidate });
 
   useEffect(() => {
-    const onClick = (e: MouseEvent) => {
+    const onClick = (e: PointerEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    document.addEventListener('mousedown', onClick);
+    document.addEventListener('pointerdown', onClick);
     document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('pointerdown', onClick);
       document.removeEventListener('keydown', onKey);
     };
   }, []);
@@ -70,7 +70,7 @@ export const NotificationBell: React.FC<Props> = ({ align = 'right' }) => {
 
       {open && (
         <div
-          className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} top-12 w-[min(22rem,calc(100vw-2rem))] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-[var(--shadow-dropdown)] z-50 overflow-hidden`}
+          className={`fixed inset-x-4 top-[calc(4.25rem+env(safe-area-inset-top))] sm:absolute sm:inset-x-auto ${align === 'right' ? 'sm:right-0' : 'sm:left-0'} sm:top-12 sm:w-[22rem] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-[var(--shadow-dropdown)] z-50 overflow-hidden`}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
             <span className="text-sm font-bold text-[var(--color-text)]">Notifications</span>
@@ -84,7 +84,7 @@ export const NotificationBell: React.FC<Props> = ({ align = 'right' }) => {
               </button>
             )}
           </div>
-          <div className="max-h-96 overflow-y-auto p-1.5">
+          <div className="max-h-[60dvh] sm:max-h-96 overflow-y-auto overscroll-contain p-1.5">
             {isLoading ? (
               <p className="p-6 text-center text-xs text-[var(--color-text-secondary)]">Loading…</p>
             ) : latest && latest.items.length > 0 ? (

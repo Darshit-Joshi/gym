@@ -37,12 +37,12 @@ export const FeesPage: React.FC = () => {
         description="Who has paid, who owes, and what's coming up."
         actions={
           <>
-            <div className="flex items-center gap-1 panel p-1">
-              <button type="button" onClick={() => setMonth((m) => shiftMonth(m, -1))} className="p-2 rounded-lg hover:bg-[var(--color-hover)] cursor-pointer" aria-label="Previous month">
+            <div className="flex flex-1 sm:flex-none items-center justify-between gap-1 panel p-1">
+              <button type="button" onClick={() => setMonth((m) => shiftMonth(m, -1))} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[var(--color-hover)] cursor-pointer" aria-label="Previous month">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-sm font-semibold min-w-[8.5rem] text-center">{monthLabel(month)}</span>
-              <button type="button" onClick={() => setMonth((m) => shiftMonth(m, 1))} className="p-2 rounded-lg hover:bg-[var(--color-hover)] cursor-pointer" aria-label="Next month">
+              <span className="text-sm font-semibold min-w-[7.5rem] sm:min-w-[8.5rem] text-center">{monthLabel(month)}</span>
+              <button type="button" onClick={() => setMonth((m) => shiftMonth(m, 1))} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[var(--color-hover)] cursor-pointer" aria-label="Next month">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>

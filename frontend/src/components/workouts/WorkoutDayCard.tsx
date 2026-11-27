@@ -58,12 +58,12 @@ export const WorkoutDayCard: React.FC<Props> = ({ session, showClient, compact, 
           {(onEdit || onDelete) && (
             <div className="flex gap-0.5 shrink-0 -mr-1.5 -mt-1">
               {onEdit && (
-                <button type="button" onClick={onEdit} className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)] cursor-pointer" aria-label="Edit this workout">
+                <button type="button" onClick={onEdit} className="w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)] cursor-pointer" aria-label="Edit this workout">
                   <Pencil className="w-4 h-4" />
                 </button>
               )}
               {onDelete && (
-                <button type="button" onClick={onDelete} className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-rose-500 hover:bg-rose-500/10 cursor-pointer" aria-label="Delete this workout">
+                <button type="button" onClick={onDelete} className="w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg text-[var(--color-text-muted)] hover:text-rose-500 hover:bg-rose-500/10 cursor-pointer" aria-label="Delete this workout">
                   <Trash2 className="w-4 h-4" />
                 </button>
               )}
@@ -86,9 +86,9 @@ export const WorkoutDayCard: React.FC<Props> = ({ session, showClient, compact, 
               {session.exercises.map((se) => {
                 const d = exerciseDetail(se);
                 return (
-                  <li key={se.id ?? se.exercise_id} className="text-xs px-2.5 py-1 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)]">
+                  <li key={se.id ?? se.exercise_id} className="max-w-full text-xs px-2.5 py-1 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)]">
                     {se.exercise_name}
-                    {d && <span className="num ml-1.5 text-[var(--color-text-muted)]">{d}</span>}
+                    {d && <span className="num ml-1.5 text-[var(--color-text-muted)] whitespace-nowrap">{d}</span>}
                   </li>
                 );
               })}

@@ -13,12 +13,15 @@ import {
   ChevronUp,
   Sun,
   Moon,
+  Download,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { NotificationBell } from '../components/notifications/NotificationBell';
 import { ChangePasswordModal } from '../components/auth/ChangePasswordModal';
 import { longDay, todayIso } from '../utils/format';
+import { useInstallPrompt } from '../utils/installPrompt';
+import { InstallBanner, IosInstallHelp } from '../components/common/InstallApp';
 
 const PRIMARY_NAV = [
   { name: 'Dashboard', short: 'Home', path: '/dashboard', icon: LayoutDashboard },
@@ -61,16 +64,18 @@ const ProfileMenu: React.FC<{ placement: 'up' | 'down'; onChangePassword: () => 
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [iosHelp, setIosHelp] = useState(false);
+  const install = useInstallPrompt();
   const ref = useRef<HTMLDivElement>(null);
   const initial = user?.name?.trim().charAt(0).toUpperCase() || 'T';
 
   useEffect(() => {
-    const onDown = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    const onDown = (e: PointerEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    document.addEventListener('mousedown', onDown);
+    document.addEventListener('pointerdown', onDown);
     document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('pointerdown', onDown);
       document.removeEventListener('keydown', onKey);
     };
   }, []);
@@ -111,10 +116,28 @@ const ProfileMenu: React.FC<{ placement: 'up' | 'down'; onChangePassword: () => 
           }`}
         >
           {placement === 'down' && (
-            <div className="px-3 py-2 mb-1 border-b border-[var(--color-border)]">
-              <p className="text-sm font-semibold truncate">{user?.name}</p>
-              <p className="text-xs text-[var(--color-text-muted)]">Trainer</p>
-            </div>
+            <>
+              <div className="px-3 py-2 mb-1 border-b border-[var(--color-border)]">
+                <p className="text-sm font-semibold truncate">{user?.name}</p>
+                <p className="text-xs text-[var(--color-text-muted)]">Trainer</p>
+              </div>
+              {/* The phone tab bar only fits the five main pages; the library lives here. */}
+              {SECONDARY_NAV.map(({ name, path, icon: Icon }) => (
+                <button
+                  key={path}
+                  role="menuitem"
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    navigate(path);
+                  }}
+                  className={`${item} hover:bg-[var(--color-hover)]`}
+                >
+                  <Icon className="w-4 h-4 text-[var(--color-text-muted)]" /> {name}
+                </button>
+              ))}
+              <div className="my-1 border-t border-[var(--color-border)]" />
+            </>
           )}
           <button
             role="menuitem"
@@ -127,6 +150,20 @@ const ProfileMenu: React.FC<{ placement: 'up' | 'down'; onChangePassword: () => 
           >
             <KeyRound className="w-4 h-4 text-[var(--color-text-muted)]" /> Change password
           </button>
+          {install.available && (
+            <button
+              role="menuitem"
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                if (install.iosManual) setIosHelp(true);
+                else void install.promptInstall();
+              }}
+              className={`${item} hover:bg-[var(--color-hover)]`}
+            >
+              <Download className="w-4 h-4 text-[var(--color-text-muted)]" /> Install app
+            </button>
+          )}
           <button role="menuitem" type="button" onClick={toggleTheme} className={`${item} hover:bg-[var(--color-hover)]`}>
             {theme === 'dark' ? <Sun className="w-4 h-4 text-[var(--color-text-muted)]" /> : <Moon className="w-4 h-4 text-[var(--color-text-muted)]" />}
             {theme === 'dark' ? 'Light mode' : 'Dark mode'}
@@ -144,6 +181,7 @@ const ProfileMenu: React.FC<{ placement: 'up' | 'down'; onChangePassword: () => 
           </button>
         </div>
       )}
+      <IosInstallHelp isOpen={iosHelp} onClose={() => setIosHelp(false)} />
     </div>
   );
 };
@@ -154,7 +192,7 @@ export const AppLayout: React.FC = () => {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   return (
-    <div className="relative isolate min-h-screen bg-[var(--color-background)] text-[var(--color-text)]">
+    <div className="relative isolate min-h-dvh bg-[var(--color-background)] text-[var(--color-text)]">
       <div className="fx-ambient" aria-hidden="true" />
 
       {/* Desktop sidebar */}
@@ -225,10 +263,10 @@ export const AppLayout: React.FC = () => {
         </div>
       </aside>
 
-      <div className="lg:pl-64 flex flex-col min-h-screen">
+      <div className="lg:pl-64 flex flex-col min-h-dvh">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 h-16 border-b border-[var(--color-sidebar-border)] bg-[var(--color-background)]/80 backdrop-blur-md">
-          <div className="h-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-3">
+        <header className="sticky top-0 z-30 pt-[env(safe-area-inset-top)] border-b border-[var(--color-sidebar-border)] bg-[var(--color-background)]/80 backdrop-blur-md">
+          <div className="h-16 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-3">
             <div className="lg:hidden">
               <Brand compact />
             </div>
@@ -247,6 +285,7 @@ export const AppLayout: React.FC = () => {
 
         <main className="flex-1 min-w-0 pb-28 lg:pb-12">
           <div key={location.pathname} className="fx-page max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+            {location.pathname === '/dashboard' && <InstallBanner />}
             <Outlet />
           </div>
         </main>

@@ -88,36 +88,15 @@ export const MembershipsTab: React.FC<Props> = ({ initialFilter = 'all', onToast
         <Card className="p-0 overflow-hidden">
           <ul className="divide-y divide-[var(--color-border)]">
             {data.items.map((m) => (
-              <li key={m.client_id} className="grid grid-cols-2 md:grid-cols-[1.5fr_1.5fr_1fr_1fr_auto] gap-x-3 gap-y-2 px-4 py-3 items-center">
-                <button onClick={() => navigate(`/clients/${m.client_id}`)} className="text-left min-w-0 cursor-pointer col-span-2 md:col-span-1">
+              <li
+                key={m.client_id}
+                className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[1.5fr_1.5fr_1fr_1fr_auto] gap-x-3 gap-y-3 px-4 py-3.5 items-center"
+              >
+                <button onClick={() => navigate(`/clients/${m.client_id}`)} className="text-left min-w-0 cursor-pointer">
                   <p className="text-sm font-semibold text-[var(--color-text)] truncate hover:text-[var(--color-accent-ink)]">{m.client_name}</p>
                   <p className="text-xs text-[var(--color-text-secondary)]">{m.client_status}</p>
                 </button>
-                <div className="text-sm">
-                  {m.plan_name ? (
-                    <>
-                      <p className="font-semibold text-[var(--color-text)]">{m.plan_name}</p>
-                      <p className="text-xs text-[var(--color-text-secondary)]">
-                        {formatMoney(m.fee_amount, currency)} · {cycleLabel(m.duration_months)}
-                      </p>
-                    </>
-                  ) : (
-                    <Badge variant="neutral" size="sm">
-                      No plan
-                    </Badge>
-                  )}
-                </div>
-                <div className="text-xs text-[var(--color-text-secondary)]">
-                  <p className="eyebrow !text-[10px]">Next due</p>
-                  <p className="text-sm text-[var(--color-text)]">{formatDate(m.next_due_date)}</p>
-                </div>
-                <div className="text-xs">
-                  <p className="eyebrow !text-[10px]">Outstanding</p>
-                  <p className={`text-sm font-bold ${m.overdue_count > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[var(--color-text)]'}`}>
-                    {formatMoney(m.outstanding_amount, currency)}
-                  </p>
-                </div>
-                <div className="flex gap-1.5 justify-end col-span-2 md:col-span-1">
+                <div className="flex gap-1.5 justify-end md:order-last">
                   <Button size="sm" variant={m.plan_id ? 'secondary' : 'primary'} onClick={() => setEditing(m)}>
                     {m.plan_id ? 'Change' : 'Assign plan'}
                   </Button>
@@ -139,6 +118,39 @@ export const MembershipsTab: React.FC<Props> = ({ initialFilter = 'all', onToast
                     </Button>
                   )}
                 </div>
+                {/* Phones: one compact line under the name. md+: these cells join the row's grid. */}
+                <div className="col-span-2 grid grid-cols-2 gap-x-3 gap-y-2.5 rounded-xl bg-[var(--color-surface-secondary)] px-3 py-2.5 md:contents">
+                  <div className="col-span-2 md:col-span-1 text-sm min-w-0">
+                    <p className="eyebrow !text-[10px] md:hidden">Plan</p>
+                    {m.plan_name ? (
+                      <>
+                        <p className="font-semibold text-[var(--color-text)] truncate">{m.plan_name}</p>
+                        <p className="text-xs text-[var(--color-text-secondary)] truncate">
+                          {formatMoney(m.fee_amount, currency)} · {cycleLabel(m.duration_months)}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="md:hidden text-sm text-[var(--color-text-muted)]">None</p>
+                        <span className="hidden md:inline-flex">
+                          <Badge variant="neutral" size="sm">
+                            No plan
+                          </Badge>
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <div className="text-xs text-[var(--color-text-secondary)] min-w-0">
+                    <p className="eyebrow !text-[10px]">Next due</p>
+                    <p className="text-sm text-[var(--color-text)] truncate">{formatDate(m.next_due_date)}</p>
+                  </div>
+                  <div className="text-xs min-w-0">
+                    <p className="eyebrow !text-[10px]">Outstanding</p>
+                    <p className={`text-sm font-bold truncate ${m.overdue_count > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-[var(--color-text)]'}`}>
+                      {formatMoney(m.outstanding_amount, currency)}
+                    </p>
+                  </div>
+                </div>
               </li>
             ))}
           </ul>
@@ -146,7 +158,7 @@ export const MembershipsTab: React.FC<Props> = ({ initialFilter = 'all', onToast
       )}
 
       {data && data.total_pages > 1 && (
-        <div className="flex items-center justify-between text-sm text-[var(--color-text-secondary)]">
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--color-text-secondary)]">
           <span>
             Page {data.page} of {data.total_pages} · {data.total} clients
           </span>

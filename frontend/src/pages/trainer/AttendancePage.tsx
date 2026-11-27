@@ -361,8 +361,8 @@ const MonthlyOverview: React.FC = () => {
   return (
     <div className="space-y-5">
       <div className="flex flex-col md:flex-row md:items-center gap-3">
-        <div className="flex items-center gap-1 panel p-1 w-fit">
-          <button type="button" onClick={() => setMonth((m) => shiftMonth(m, -1))} className="p-2 rounded-lg hover:bg-[var(--color-hover)] cursor-pointer" aria-label="Previous month">
+        <div className="flex items-center justify-between gap-1 panel p-1 w-full md:w-fit">
+          <button type="button" onClick={() => setMonth((m) => shiftMonth(m, -1))} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[var(--color-hover)] cursor-pointer" aria-label="Previous month">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <span className="text-sm font-semibold min-w-[9.5rem] text-center">{monthLabel(month)}</span>
@@ -370,7 +370,7 @@ const MonthlyOverview: React.FC = () => {
             type="button"
             onClick={() => setMonth((m) => shiftMonth(m, 1))}
             disabled={month >= currentMonth()}
-            className="p-2 rounded-lg hover:bg-[var(--color-hover)] cursor-pointer disabled:opacity-30"
+            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-[var(--color-hover)] cursor-pointer disabled:opacity-30"
             aria-label="Next month"
           >
             <ChevronRight className="w-4 h-4" />
@@ -395,14 +395,20 @@ const MonthlyOverview: React.FC = () => {
                 <Link to={`/clients/${c.client_id}?tab=attendance&month=${month}`} className="flex items-center gap-3 sm:gap-4 px-4 py-3.5 hover:bg-[var(--color-hover)] transition-colors">
                   <Avatar clientId={c.client_id} photo={c.client_photo} name={c.client_name} />
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate">{c.client_name}</p>
-                    <p className="text-xs text-[var(--color-text-muted)]">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="font-medium truncate">{c.client_name}</p>
+                      <span className="sm:hidden num text-sm font-semibold shrink-0">{c.total_recorded ? `${Math.round(pct)}%` : '—'}</span>
+                    </div>
+                    <p className="text-xs text-[var(--color-text-muted)] whitespace-nowrap truncate">
                       <span className="text-emerald-600 dark:text-emerald-400 num">{c.present_count}</span> present ·{' '}
                       <span className="text-amber-600 dark:text-amber-400 num">{c.late_count}</span> late ·{' '}
                       <span className="text-rose-600 dark:text-rose-400 num">{c.absent_count}</span> absent
                     </p>
+                    <div className="sm:hidden mt-2 h-1.5 rounded-full bg-[var(--color-surface-secondary)] overflow-hidden" aria-hidden="true">
+                      <div className={`h-full rounded-full ${bar}`} style={{ width: `${pct}%` }} />
+                    </div>
                   </div>
-                  <div className="w-24 sm:w-40 shrink-0">
+                  <div className="hidden sm:block w-40 shrink-0">
                     <div className="flex justify-end mb-1.5">
                       <span className="num text-sm font-semibold">{c.total_recorded ? `${Math.round(pct)}%` : '—'}</span>
                     </div>

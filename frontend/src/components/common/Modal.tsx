@@ -52,7 +52,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, descriptio
     >
       <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
       <div
-        className={`fx-dialog relative z-10 w-full ${WIDTHS[maxWidth || size]} max-h-[92vh] sm:max-h-[88vh] flex flex-col bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] rounded-t-3xl sm:rounded-2xl shadow-[var(--shadow-dropdown)]`}
+        className={`fx-dialog relative z-10 w-full ${WIDTHS[maxWidth || size]} max-h-[92dvh] sm:max-h-[88dvh] flex flex-col bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] rounded-t-3xl sm:rounded-2xl shadow-[var(--shadow-dropdown)]`}
       >
         <div className="sm:hidden mx-auto mt-2.5 h-1 w-10 rounded-full bg-[var(--color-border-strong)]" aria-hidden="true" />
         <div className="flex items-start justify-between gap-4 px-5 sm:px-6 pt-4 sm:pt-5 pb-3">
@@ -71,7 +71,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, descriptio
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="px-5 sm:px-6 pb-5 sm:pb-6 overflow-y-auto">{children}</div>
+        <div className={`px-5 sm:px-6 overflow-y-auto overscroll-contain ${footer ? 'pb-5 sm:pb-6' : 'pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-6'}`}>{children}</div>
         {footer && (
           <div className="px-5 sm:px-6 py-3.5 border-t border-[var(--color-border)] flex justify-end gap-2 pb-safe">{footer}</div>
         )}

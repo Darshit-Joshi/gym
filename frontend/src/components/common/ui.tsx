@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Search, X } from 'lucide-react';
 
 // ----------------------------------------------------------------------------- Page header
@@ -75,7 +75,7 @@ export const StatTile: React.FC<StatTileProps> = ({
       className={`panel p-4 sm:p-5 text-left flex flex-col gap-3 min-w-0 ${onClick ? 'fx-card-interactive cursor-pointer' : ''} ${className}`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="eyebrow truncate">{label}</span>
+        <span className="eyebrow line-clamp-2 sm:line-clamp-1 leading-snug">{label}</span>
         {icon && <span className={`hidden sm:flex w-8 h-8 rounded-lg border items-center justify-center shrink-0 ${TONE_ICON[tone]}`}>{icon}</span>}
       </div>
       <div className="min-w-0">
@@ -108,8 +108,20 @@ interface SegmentedProps<T extends string> {
 
 /** A row of mutually exclusive choices (filters and view switches). Scrolls sideways on phones. */
 export function Segmented<T extends string>({ value, onChange, options, label, size = 'md', className = '' }: SegmentedProps<T>) {
+  const ref = useRef<HTMLDivElement>(null);
+  // On narrow screens the row scrolls; keep the selected option in view (e.g. when opened on a later tab).
+  useEffect(() => {
+    const row = ref.current;
+    const active = row?.querySelector<HTMLElement>('[aria-checked="true"]');
+    if (!row || !active || row.scrollWidth <= row.clientWidth) return;
+    const left = active.offsetLeft - row.offsetLeft;
+    if (left < row.scrollLeft || left + active.offsetWidth > row.scrollLeft + row.clientWidth) {
+      row.scrollTo({ left: Math.max(0, left - 24), behavior: 'smooth' });
+    }
+  }, [value]);
   return (
     <div
+      ref={ref}
       role="radiogroup"
       aria-label={label}
       className={`flex items-center gap-1 p-1 rounded-xl bg-[var(--color-surface-secondary)] border border-[var(--color-border)] overflow-x-auto scrollbar-none max-w-full ${className}`}
